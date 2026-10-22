@@ -193,12 +193,23 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# GenRec specific
+# Local datasets and results
 out/
 dataset/
 models_hub/
 wandb/
 .wandb/
+
+# Retain the old local checkout, but publish only the standalone TIGER package.
+/genrec/
+/config/cobra/
+/config/hstu/
+/config/lcrec/
+/config/onerec/
+/config/rpg/
+/config/sasrec/
+/config/accelerate_4gpu.yaml
+/scripts/train_rpg.sh
 
 # Generated experiment records; Markdown guides stay versioned.
 docs/generated/*.json
@@ -221,8 +232,7 @@ assets/
 reference/
 GRLM/
 
-# CoTIGER public package: keep historical experiments and private operations local.
-/tiger_prefix_ft/
+# CoTIGER source and research scripts are versioned; generated assets stay local.
 /artifacts/
 *.pt
 *.pth
@@ -241,6 +251,12 @@ GRLM/
 !/docs/generated/tiger_prefix_ft_beauty_20261013/cotiger_design.md
 !/docs/generated/tiger_prefix_ft_beauty_20261013/cotiger_results.md
 !/docs/generated/tiger_prefix_ft_beauty_20261013/cotiger_artifacts.json
+!/docs/generated/tiger_prefix_ft_beauty_20261013/reproduction.md
+!/docs/generated/tiger_prefix_ft_beauty_20261013/reproducibility_audit_20261022.md
+!/docs/generated/tiger_prefix_ft_beauty_20261013/inference_optimization_20261016.md
+!/docs/generated/tiger_prefix_ft_beauty_20261013/prior_speed_20261016.md
+!/docs/generated/tiger_prefix_ft_beauty_20261013/codebook_usage_20261020.md
+!/docs/generated/tiger_prefix_ft_beauty_20261013/codebook_usage_20261020.png
 /mkdocs.yml
 /requirements-docs.txt
 /.github/workflows/docs.yml

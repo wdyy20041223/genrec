@@ -9,8 +9,8 @@ import time
 import numpy as np
 import torch
 
-from genrec.models.tiger import Tiger
-from genrec.trainers.tiger_trainer import evaluate
+from cotiger.core.models.tiger import Tiger
+from cotiger.core.trainers.tiger_trainer import evaluate
 from .data import ValidationDataset, collate_validation, make_loader
 from .decoding import CPUCompactPrior, CSRGPUPrior, generate_fast
 from .prior import PrefixPrior

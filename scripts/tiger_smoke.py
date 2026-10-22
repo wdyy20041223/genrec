@@ -89,9 +89,9 @@ def run_stage(module, config, overrides, output):
 
 def micro_timing(report_path):
     # Two input histories, one warmup and three measurements per execution path.
-    from genrec.data.schemas import SeqData
-    from genrec.models.tiger import Tiger
-    from genrec.trainers.tiger_trainer import t5_collate, autocast_context
+    from cotiger.core.data.schemas import SeqData
+    from cotiger.core.models.tiger import Tiger
+    from cotiger.core.trainers.tiger_trainer import t5_collate, autocast_context
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if device.type != 'cuda':
         return {'skipped': 'CUDA is unavailable'}
@@ -176,7 +176,7 @@ def main():
     tiger_dir.mkdir()
     common = [f'train.dataset_folder={data.as_posix()!r}', 'train.wandb_logging=False',
               'train.num_workers=0']
-    rq_seconds = run_stage('genrec.trainers.rqvae_trainer', 'config/tiger/amazon/rqvae.gin',
+    rq_seconds = run_stage('cotiger.core.trainers.rqvae_trainer', 'config/tiger/amazon/rqvae.gin',
                           common + ['train.epochs=2', 'train.warmup_epochs=0',
                                     'train.use_kmeans_init=False',
                                     f'train.save_dir_root={rq_dir.as_posix()!r}'], rq_dir)
@@ -186,7 +186,7 @@ def main():
     assert all(torch.isfinite(value).all() for value in state['model'].values())
     assert any(torch.count_nonzero(values.get('exp_avg', torch.tensor(0))) > 0
                for values in state['optimizer']['state'].values()), 'RQ-VAE optimizer never updated.'
-    tiger_seconds = run_stage('genrec.trainers.tiger_trainer', 'config/tiger/amazon/tiger.gin',
+    tiger_seconds = run_stage('cotiger.core.trainers.tiger_trainer', 'config/tiger/amazon/tiger.gin',
                              common + ['train.epochs=1', 'train.batch_size=16', 'train.infer_batch_size=4',
                                        'train.max_train_samples=32', 'train.max_eval_samples=8',
                                        f'train.pretrained_rqvae_path={checkpoint.as_posix()!r}',
@@ -206,9 +206,9 @@ def main():
               'rqvae_weights_finite': True, 'rqvae_optimizer_updated': True,
               'tiger_weights_finite': True, 'tiger': result, 'micro_timing': timing,
               'accuracy_claim': 'No full-data training or accuracy conclusion.'}
-    source_files = ['genrec/trainers/rqvae_trainer.py', 'genrec/trainers/tiger_trainer.py',
-                    'genrec/models/rqvae.py', 'genrec/models/tiger.py', 'genrec/modules/t5.py',
-                    'genrec/data/amazon.py', 'config/tiger/amazon/rqvae.gin', 'config/tiger/amazon/tiger.gin']
+    source_files = ['cotiger/core/trainers/rqvae_trainer.py', 'cotiger/core/trainers/tiger_trainer.py',
+                    'cotiger/core/models/rqvae.py', 'cotiger/core/models/tiger.py', 'cotiger/core/modules/t5.py',
+                    'cotiger/core/data/amazon.py', 'config/tiger/amazon/rqvae.gin', 'config/tiger/amazon/tiger.gin']
     report['source_sha256'] = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in source_files}
     report_path.write_text(json.dumps(report, indent=2), encoding='utf-8')
     print(json.dumps({'status': report['status'], 'report': str(report_path),

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cotiger"
-version = "0.1.0"
-description = "Collaborative-Guided TIGER for Generative Retrieval, built on GenRec"
+version = "0.2.0"
+description = "Collaborative-guided semantic ID retrieval with TIGER"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -19,13 +19,12 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "accelerate>=0.31.0",
     "gin-config>=0.5.0",
@@ -33,6 +32,7 @@ dependencies = [
     "numpy>=1.24.0",
     "pandas>=1.5.0",
     "polars>=1.9.0",
+    "pyarrow>=14.0.0",
     "sentence-transformers>=3.0.0",
     "torch>=2.0.0",
     "tqdm>=4.65.0",
@@ -41,7 +41,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-cotiger = ["pyarrow>=14.0.0"]
+research = [
+    "psutil>=5.9.0",
+    "matplotlib>=3.7.0",
+    "scipy>=1.10.0",
+    "threadpoolctl>=3.1.0",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -49,17 +54,6 @@ dev = [
     "ruff>=0.1.0",
     "mypy>=1.0.0",
     "pre-commit>=3.0.0",
-]
-docs = [
-    "mkdocs>=1.5.0",
-    "mkdocs-material>=9.0.0",
-    "mkdocs-static-i18n>=1.0.0",
-]
-full = [
-    "triton>=3.0.0",
-    "torchvision>=0.15.0",
-    "torch-geometric>=2.0.0",
-    "peft>=0.10.0",
 ]
 
 [project.urls]
@@ -70,7 +64,10 @@ Issues = "https://github.com/wdyy20041223/CoTIGER/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["genrec*", "cotiger*"]
+include = ["cotiger*", "tiger_prefix_ft*"]
+
+[tool.setuptools.package-data]
+"tiger_prefix_ft.raw_collection" = ["schema.md"]
 
 [tool.black]
 line-length = 100
@@ -114,7 +111,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["genrec"]
+known-first-party = ["cotiger", "tiger_prefix_ft"]
 
 [tool.mypy]
 python_version = "3.9"
@@ -135,7 +132,7 @@ python_functions = ["test_*"]
 addopts = "-v --tb=short"
 
 [tool.coverage.run]
-source = ["genrec"]
+source = ["cotiger", "tiger_prefix_ft"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",

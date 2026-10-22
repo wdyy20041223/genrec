@@ -1,6 +1,6 @@
 # CoTIGER — Collaborative-Guided TIGER for Generative Retrieval
 
-基于 [GenRec](https://github.com/phonism/genrec) 的生成式推荐研究与工程项目。在冻结的 TIGER 上引入 **Train 商品转移统计**，引导 Semantic ID 前缀搜索，并通过稀疏查表和 KV Cache 优化降低推理开销。
+围绕 TIGER 的独立生成式推荐项目，聚焦 **自回归前缀错误传播、协同信号引导解码和推理加速**。在冻结的 TIGER 上引入 Train 商品转移统计，引导 Semantic ID 前缀搜索，并通过稀疏查表和 KV Cache 优化降低推理开销。
 
 项目围绕一个具体问题展开：**正确 SID 的早期前缀被 Beam 剪掉后，后续解码无法恢复目标商品。如何利用用户历史中的协同信号改善搜索，同时保留可核对的评分规则？**
 
@@ -11,7 +11,25 @@
 - **无损推理加速**：预计算 Log-Lift、CSR 转移存储、用户级奖励表、GPU 批量索引、已见 SID 过滤，以及仅重排 Self-Attention KV Cache。
 - **输出验收**：完整 Validation 逐样本核对 Top-10 SID 与顺序，并核对最终全部 Beam；小样本进一步检查三层路径及 FP32 原始累计分数。
 
-CoTIGER 的主要实现位于 `cotiger/`。`genrec/` 保留上游模型、数据及训练基础设施；本项目沿用原始 T5 结构与既有 100-epoch TIGER checkpoint，校准过程无需梯度训练。
+仓库只包含 TIGER、生成 SID 必需的 RQ-VAE，以及本项目的改进和诊断代码。TIGER 基础实现从 [GenRec](https://github.com/phonism/genrec) 提取至 `cotiger/core/`；不依赖完整 GenRec 仓库，也不包含其他推荐模型。本项目沿用原始 T5 结构与既有 100-epoch TIGER checkpoint，历史校准无需梯度训练。
+
+```text
+cotiger/
+├── core/                     # TIGER、T5、RQ-VAE、Amazon 数据和原训练/评估流程
+├── prior.py                  # 历史转移 Log-Lift 参考公式
+├── reference.py              # 校准 Beam Search 参考实现
+├── decoding.py               # CSR/GPU 查表、用户奖励复用、KV Cache 加速
+├── evaluate.py               # 原版/校准、参考/加速实现的统一评估入口
+└── statistics.py             # 仅从 Train 重建转移统计
+tiger_prefix_ft/              # Beam 诊断、原始轨迹采集、负例加工和微调研究
+config/tiger/amazon/          # RQ-VAE 与 TIGER 训练配置
+tests/                       # 不依赖外部权重的数据、搜索及梯度检查
+scripts/                     # TIGER 小规模流程、分析导出和备份核对
+docs/generated/tiger_prefix_ft_beauty_20261013/
+                             # 集中保存方法、结果和复现说明
+```
+
+另保留 CE + Prefix InfoNCE、Trie 和 Beam 宽度的研究代码，便于复查已有实验。这些可选分支不参与默认 CoTIGER 推理；主要结果使用原版权重、无 Trie、完整词表搜索。
 
 ## 实验结果
 
@@ -53,7 +71,7 @@ conda env create -f environment.yml
 conda activate cotiger
 ```
 
-`environment.yml` 对应 Windows + CUDA 12.4。Linux 或已有 CUDA 环境可先安装匹配驱动的 PyTorch，再运行 `pip install -r requirements.txt` 和 `pip install -e ".[cotiger]"`。复现实验请尽量保持 PyTorch、精度、Batch 及 Padding 相同；不同 GPU 内核可能影响接近并列的 FP16 排序。
+`environment.yml` 对应 Windows + CUDA 12.4。Linux 或已有 CUDA 环境可先安装匹配驱动的 PyTorch，再运行 `pip install -r requirements.txt` 和 `pip install -e .`。研究脚本可使用 `pip install -e ".[research]"`。无需安装 PyTorch Geometric、Triton 或 LoRA 组件。复现实验请尽量保持 PyTorch、精度、Batch 及 Padding 相同；不同 GPU 内核可能影响接近并列的 FP16 排序。
 
 ### 2. 获取必要资产
 
@@ -79,8 +97,9 @@ artifacts/beauty/
 以下命令均从仓库根目录执行；`--output` 必须是尚不存在的目录，避免覆盖结果。
 
 ```bash
-# CPU 边界检查，无需下载权重
-python -m unittest discover -s tests -p test_cotiger.py -v
+# CPU 检查，无需下载权重；使用微型合成模型验证搜索、Padding 和梯度
+python -m unittest discover -s tests -p "test_*.py" -v
+python -m unittest discover -s tiger_prefix_ft -t . -p "test_*.py" -v
 
 # 首批 64 条真实 Validation：与发布包中的同批次参考预测严格比较
 python -m cotiger.evaluate --max-samples 64 --check-reference --output out/cotiger/smoke15
@@ -127,6 +146,9 @@ alpha = [0, 0.4, 0.4]
 
 | 文件 | 职责 |
 | --- | --- |
+| `cotiger/core/models/` | 原始 TIGER 和 SID 量化用 RQ-VAE；检查点参数名保持兼容 |
+| `cotiger/core/modules/t5.py` | 原 T5、逐层 Beam Search、可选轨迹记录与 Trie 接口 |
+| `cotiger/core/trainers/` | RQ-VAE/TIGER 训练与原 Recall/NDCG 评估器 |
 | `cotiger/evaluate.py` | 冻结模型加载、原评估器复用、输出核对及计时 |
 | `cotiger/prior.py` | 原校准公式与字典参考实现 |
 | `cotiger/reference.py` | 保留实际逐层 Top-K 的搜索参考实现 |
@@ -136,10 +158,21 @@ alpha = [0, 0.4, 0.4]
 | `cotiger/data.py`、`cotiger/ids.py` | 相同历史截断、左 Padding、Offset 与 SID 索引 |
 | `tests/test_cotiger.py` | 路径、分数与先验边界检查 |
 
-更详细的公式、搜索行为和优化边界见[方法说明](docs/generated/tiger_prefix_ft_beauty_20261013/cotiger_design.md)。历史微调权重、原始大规模 Beam 轨迹、云端操作脚本及过程文档未纳入当前发布内容。
+更详细的公式、搜索行为和优化边界见[方法说明](docs/generated/tiger_prefix_ft_beauty_20261013/cotiger_design.md)。
+
+## 研究复现与资产边界
+
+[完整复现说明](docs/generated/tiger_prefix_ft_beauty_20261013/reproduction.md) 列出了从原始 Beauty、文本向量、RQ-VAE、TIGER 到校准评估的步骤，以及轨迹采集、H2/H4/H6 数据准备和逐层诊断的入口。训练和原始轨迹采集需自行准备输入；命令不会随安装自动运行。
+
+- [推荐效果改进报告](docs/generated/tiger_prefix_ft_beauty_20261013/inference_optimization_20261016.md)
+- [无损工程加速报告](docs/generated/tiger_prefix_ft_beauty_20261013/prior_speed_20261016.md)
+- [当前码本使用情况](docs/generated/tiger_prefix_ft_beauty_20261013/codebook_usage_20261020.md)
+- [独立仓库复现核查](docs/generated/tiger_prefix_ft_beauty_20261013/reproducibility_audit_20261022.md)
+
+Git 只保存源码、配置、测试和必要说明，不保存模型权重、数据集、Parquet、原始 Beam 轨迹或云端登录信息。已有 Beauty v1 Release 可选用于精确重放主推理结果；历史微调检查点、完整原始轨迹和全部 RQ-VAE 快照不在该包中。删除本地实验目录前，应自行保留仍需分析的这些文件。仅克隆代码不能恢复未上传的历史数据。
 
 ## 来源与许可
 
-模型、RQ-VAE、T5 及原始训练/评估基础设施来自 [phonism/GenRec](https://github.com/phonism/genrec)，保留上游代码与作者信息。本项目的工作集中于历史转移校准、对照分析、推理优化和输出验证；不将上游 TIGER/RQ-VAE 描述为个人原创。
+模型、RQ-VAE、T5 及原始训练/评估基础设施来自 [phonism/GenRec](https://github.com/phonism/genrec)，在 `cotiger/core/` 中按 TIGER 所需依赖提取，保留 MIT 许可与上游作者信息。本项目的工作集中于历史转移校准、对照分析、推理优化和输出验证；不将上游 TIGER/RQ-VAE 描述为个人原创。
 
 代码沿用 [MIT License](LICENSE)。Beauty 来自 Amazon Reviews；加工数据与实验权重是复现资产，使用时仍需遵守源数据的使用条件。当前结果针对这一数据集、checkpoint 和 SID 级评价协议，尚未证明跨数据集泛化或独立商品级检索效果。

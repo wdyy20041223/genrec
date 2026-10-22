@@ -64,4 +64,4 @@ score(H,s) = Σ_age 0.5^age * P(s|history[-1-age])
 
 原工程加速实验已对两个Beam配置的完整Validation逐样本核对Top10及最终全部Beam；256条真实样本另行核对每层存活路径、先验值和FP32原始累计分数的逐位一致性。发布包保存原始预测与一致性Parquet，CLI可以重新加载相同checkpoint复核。
 
-本次整理只调整代码命名与导入，不重新训练或生成SID。公开入口重新对两个Beam配置各64条真实Validation做严格输出对照；具体核查结果见发布包`evidence/packaging_checks.json`。
+独立项目整理保留原模型计算与参数名，不重新训练或生成SID。2026-10-22 在不含旧 GenRec 的干净副本中，对原版、校准参考、校准加速三个实现的两个Beam配置各64条真实Validation做严格输出对照，全部有序Beam一致；见[本次核查](reproducibility_audit_20261022.md)。发布包`evidence/packaging_checks.json`保留早期发布核对记录。

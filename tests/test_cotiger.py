@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 import torch
 
-from genrec.models.tiger import Tiger
+from cotiger.core.models.tiger import Tiger
 from cotiger.decoding import CPUCompactPrior, CSRGPUPrior, fast_search
 from cotiger.ids import SID_SPACE, prefix_keys, sid_keys
 from cotiger.prior import PrefixPrior

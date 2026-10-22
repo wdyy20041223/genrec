@@ -6,11 +6,11 @@ from unittest.mock import patch
 
 import torch
 
-from genrec.data.amazon import AmazonSeqDataset
-from genrec.data.schemas import SeqData
-from genrec.models.rqvae import RqVae, _sinkhorn_knopp, QuantizeForwardMode
-from genrec.models.tiger import Tiger
-from genrec.trainers.tiger_trainer import t5_collate, evaluate, train
+from cotiger.core.data.amazon import AmazonSeqDataset
+from cotiger.core.data.schemas import SeqData
+from cotiger.core.models.rqvae import RqVae, _sinkhorn_knopp, QuantizeForwardMode
+from cotiger.core.models.tiger import Tiger
+from cotiger.core.trainers.tiger_trainer import t5_collate, evaluate, train
 
 
 class TigerSpeedTests(unittest.TestCase):
@@ -168,8 +168,8 @@ class TigerSpeedTests(unittest.TestCase):
         # scores so epoch 1 remains best while epoch 5 still triggers testing.
         with tempfile.TemporaryDirectory() as output:
             try:
-                with patch('genrec.trainers.tiger_trainer.evaluate', side_effect=fake_evaluate), \
-                     patch('genrec.trainers.tiger_trainer.torch.cuda.is_available', return_value=False):
+                with patch('cotiger.core.trainers.tiger_trainer.evaluate', side_effect=fake_evaluate), \
+                     patch('cotiger.core.trainers.tiger_trainer.torch.cuda.is_available', return_value=False):
                     result = train(dataset=TinyDataset, save_dir_root=output, epochs=6,
                                    batch_size=2, infer_batch_size=2, wandb_logging=False,
                                    num_workers=0, num_layers=1, num_decoder_layers=1,

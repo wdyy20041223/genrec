@@ -4,8 +4,8 @@
 
 include "config/base.gin"
 
-import genrec.data.amazon
-import genrec.models.tiger
+import cotiger.core.data.amazon
+import cotiger.core.models.tiger
 
 # Training settings (plain Adam, no scheduler - best config)
 train.epochs=100
